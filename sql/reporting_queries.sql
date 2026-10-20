@@ -17,13 +17,14 @@ ORDER BY d.year, d.month, complaint_count DESC, product;
 
 -- 2. Monetary-relief rate by company.
 -- The denominator is all complaints for the company. A response is counted as
--- relief when its CFPB response text contains "monetary relief".
+-- relief only for CFPB's explicit "Closed with monetary relief" disposition.
+-- This avoids counting "Closed with non-monetary relief" as a positive outcome.
 SELECT
     c.company_name,
     COUNT(*) AS complaint_count,
     SUM(
         CASE
-            WHEN LOWER(COALESCE(f.company_response, '')) LIKE '%monetary relief%'
+            WHEN LOWER(COALESCE(f.company_response, '')) = 'closed with monetary relief'
                 THEN 1
             ELSE 0
         END
@@ -31,7 +32,7 @@ SELECT
     ROUND(
         100.0 * SUM(
             CASE
-                WHEN LOWER(COALESCE(f.company_response, '')) LIKE '%monetary relief%'
+                WHEN LOWER(COALESCE(f.company_response, '')) = 'closed with monetary relief'
                     THEN 1
                 ELSE 0
             END

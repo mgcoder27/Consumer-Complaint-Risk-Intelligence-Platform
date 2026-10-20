@@ -37,10 +37,10 @@ existing complaint IDs.
    python src/inspect_sample.py "D:\data\cfpb_complaints.csv" --sample-size 500
    ```
 
-   The utility prints the CSV headers, missing-value counts, and an exploratory
-   monetary-relief class count derived from `Company response to consumer`.
-   Blank responses are counted separately as `Unknown response`. These sample
-   counts are for initial inspection; they are not a model evaluation.
+   The utility prints the CSV headers, missing-value counts, and monetary-relief
+   outcome counts derived from `Company response to consumer`. Ambiguous and
+   unresolved responses remain separate from binary labels. These sample counts
+   are for initial inspection, not model evaluation.
 
 3. Create a MySQL database, for example `cfpb_complaints`.
 4. Create the tables by running `sql/schema.sql` against the chosen database.
@@ -87,9 +87,10 @@ Run the statements in `sql/reporting_queries.sql` against the loaded database.
 
 1. **Complaints per product per month** groups complaint counts by product and
    the received year and month, helping identify product-level volume changes.
-2. **Monetary-relief rate by company** counts responses whose text contains
-   “monetary relief” and divides by all complaints for that company. This is a
-   descriptive rate, not a prediction of future relief.
+2. **Monetary-relief rate by company** counts CFPB's explicit `Closed with
+   monetary relief` response and divides by all complaints for that company.
+   It excludes `Closed with non-monetary relief`; this is a descriptive rate,
+   not a prediction of future relief.
 3. **Top issues per state** counts complaints by state and issue, then uses
    `ROW_NUMBER()` to return each state's five most frequent issues.
 4. **Month-over-month trend** totals complaints by month and uses `LAG()` to
@@ -126,7 +127,10 @@ paths and a chunk size when needed:
 python src/regex_features.py "D:\data\complaints.csv" "D:\data\complaints_features.csv" --chunksize 20000
 ```
 
-The extractor adds `narrative_clean`, `amount_mentioned` (the first explicit
+The extractor requires the CFPB `Consumer complaint narrative` column. The
+attached CSV does not contain that field, so narrative cleanup and regex
+extraction cannot run on that file. When the field is present, the extractor
+adds `narrative_clean`, `amount_mentioned` (the first explicit
 dollar/USD amount as a number), `amount_mentions`, `n_amount_mentions`,
 `has_amount`, `date_mentions`, `n_date_mentions`, `has_date`,
 `has_account_mention`, `has_card_mention`, `has_account_card_mention`,
@@ -153,7 +157,9 @@ python src/traditional_baseline.py
 ```
 
 The default input is `data/raw/complaints.csv`; both the narrative and `Issue`
-columns must be present. An alternate target, input file, or test split can be
+columns must be present. The attached CSV has no narrative field, so TF-IDF
+issue classification requires a separate narrative-bearing CFPB export. An
+alternate target, input file, or test split can be
 provided:
 
 ```powershell
@@ -211,6 +217,8 @@ under `data/processed/transformer/`, which is Git-ignored. Consumer narratives
 may contain personal information; only process them in Colab if permitted by
 your data-handling requirements. No metrics or weakest-class claims are
 hard-coded: they are generated when the notebook runs on your CFPB snapshot.
+The attached CSV has no complaint narrative column, so it cannot run this
+DistilBERT stage; use a narrative-bearing CFPB export.
 
 ## Stage 5: Risk ontology and Census population features
 
@@ -253,20 +261,34 @@ feature does not automatically adjust for a mismatch in time periods.
 
 ## Stage 6: Monetary-relief risk model
 
-`src/risk_model.py` compares two class-balanced Logistic Regression models:
+`src/risk_model.py` compares class-balanced Logistic Regression models when
+text exists:
 
 - **Structured only:** regex-derived numeric/boolean narrative features,
   Product, State, and the custom ontology category.
 - **Text + structured:** the same features plus unigram/bigram TF-IDF from the
   cleaned complaint narrative.
 
-Run it from the project root with `data/raw/complaints.csv` present:
+For the attached file, the narrative column is absent. The script therefore
+uses its streaming sample to run only the structured model (Product, State, and
+the mapped ontology category); it reports text/regex features as unavailable
+and does not claim a text lift. The uploaded source was read-only profiled
+without outputting complaint narratives: it has 18,531,443 rows and 15 columns,
+with no `Consumer complaint narrative` column. Since that file contains no
+narratives, Stages 2-4 cannot be evaluated from this particular CSV either.
+
+Run it from the project root and pass the source path if the file is not in
+`data/raw/complaints.csv`:
 
 ```powershell
-python src/risk_model.py
+python src/risk_model.py "D:\desktop\Downloads\complaints.csv\complaints.csv"
 ```
 
-The default 20% stratified holdout uses seed 42. Hyperparameters are selected
+For large files, the command scans in chunks and makes a seeded, class-
+proportional sample capped at 200,000 rows (`--max-rows` and `--chunksize` are
+configurable). This retains the observed outcome prevalence rather than
+artificially balancing the relief classes. The default 20% stratified holdout
+uses seed 42. Hyperparameters are selected
 by three-fold stratified ROC-AUC cross-validation using training rows only.
 Imputation, scaling, one-hot categories, and TF-IDF are fitted inside the
 cross-validation pipeline. The report contains held-out ROC-AUC,
@@ -274,14 +296,23 @@ monetary-relief precision and recall (at a 0.5 probability threshold), class
 counts, selected parameters, and a confusion matrix. Results and predictions
 are written under `data/processed/risk_model/`, which is Git-ignored.
 
-The target is defined only for observed closed outcomes: responses containing
-`monetary relief` are positive, other responses beginning with `Closed` are
-negative, and missing, in-progress, or unrecognized responses are excluded.
+The target is defined conservatively for observed closed outcomes:
+`Closed with monetary relief` is positive. `Closed with non-monetary relief`,
+`Closed with explanation`, and `Closed without relief` are negative. Missing,
+in-progress, untimely, bare `Closed`, ambiguous legacy `Closed with relief`,
+and other unrecognized responses are excluded rather than guessed.
 The target source, `Company response to consumer`, is never included as a
 predictor. `Timely response?` and `Consumer disputed?` are also explicitly
 excluded because they are response/dispute workflow fields that may be known
 only after intake. The notebook `notebooks/06_risk_model.ipynb` explains this
 leakage control and the results.
+
+The observed source response counts are: 222,483 `Closed with monetary relief`
+positive rows; 17,623,042 rows across the three explicit negative categories;
+and 685,918 ambiguous, unresolved, untimely, or missing outcomes excluded.
+That is a 1.2467% positive rate among labeled closed outcomes. The data file
+contains 18,531,443 records total. These are descriptive counts for the
+provided file, not model metrics.
 
 This is a historical closed-complaint outcome model, not a validated
 prospective prediction at complaint intake. If it is used to forecast future

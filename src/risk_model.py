@@ -1,13 +1,19 @@
 """Train and compare structured-only and narrative-text relief risk models."""
 
 import argparse
+import hashlib
 import json
 import math
 import re
 from pathlib import Path
+import sys
 from typing import Any
 
 import pandas as pd
+
+# Support both `python -m src.risk_model` and direct script execution.
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.ontology_features import map_risk_category
 from src.regex_features import extract_narrative_features
@@ -16,6 +22,8 @@ from src.regex_features import extract_narrative_features
 DEFAULT_RANDOM_SEED = 42
 DEFAULT_TEST_SIZE = 0.2
 DEFAULT_CV_FOLDS = 3
+DEFAULT_MAX_ROWS = 200_000
+DEFAULT_CHUNK_SIZE = 250_000
 DEFAULT_RESPONSE_COLUMN = "Company response to consumer"
 DEFAULT_NARRATIVE_COLUMN = "Consumer complaint narrative"
 DEFAULT_TARGET_COLUMN = "monetary_relief"
@@ -47,10 +55,222 @@ CATEGORICAL_FEATURES = ("Product", "risk_category", "State")
 TEXT_FEATURE = "narrative_clean"
 
 
+def _derive_relief_targets(
+    responses: pd.Series,
+) -> tuple[pd.Series, pd.Series]:
+    """Vectorize the conservative CFPB disposition mapping for large CSV chunks."""
+    normalized = (
+        responses.fillna("")
+        .astype(str)
+        .str.casefold()
+        .str.split()
+        .str.join(" ")
+    )
+    non_monetary = normalized.str.contains(
+        r"\bnon[\s-]+monetary relief\b",
+        regex=True,
+        na=False,
+    )
+    positive = normalized.eq("closed with monetary relief")
+    negative = normalized.isin(
+        {
+            "closed with explanation",
+            "closed without relief",
+        }
+    ) | non_monetary
+
+    targets = pd.Series(pd.NA, index=responses.index, dtype="Int64")
+    targets.loc[positive] = 1
+    targets.loc[negative] = 0
+
+    reasons = pd.Series(
+        "unrecognized or unresolved response",
+        index=responses.index,
+        dtype="string",
+    )
+    reasons.loc[responses.isna() | normalized.eq("")] = "missing response"
+    reasons.loc[
+        normalized.str.contains(r"\b(?:in progress|pending)\b", regex=True, na=False)
+    ] = "unresolved response"
+    reasons.loc[normalized.eq("closed") | normalized.eq("closed with relief")] = (
+        "ambiguous closed outcome"
+    )
+    reasons.loc[positive] = "closed with monetary relief"
+    reasons.loc[non_monetary] = "closed with non-monetary relief"
+    reasons.loc[
+        normalized.isin({"closed with explanation", "closed without relief"})
+    ] = "closed without explicit monetary relief"
+    return targets, reasons
+
+
+def sample_modeling_rows(
+    csv_path: Path,
+    max_rows: int = DEFAULT_MAX_ROWS,
+    chunksize: int = DEFAULT_CHUNK_SIZE,
+    random_seed: int = DEFAULT_RANDOM_SEED,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Make a deterministic, class-proportional sample without loading a huge CSV."""
+    import numpy as np
+
+    if max_rows <= 0:
+        raise ValueError("max_rows must be greater than zero.")
+    if chunksize <= 0:
+        raise ValueError("chunksize must be greater than zero.")
+    if not csv_path.is_file():
+        raise FileNotFoundError(f"CFPB CSV file not found: {csv_path.resolve()}")
+
+    headers = set(pd.read_csv(csv_path, nrows=0, encoding="utf-8-sig").columns)
+    required_columns = {
+        DEFAULT_RESPONSE_COLUMN,
+        "Product",
+        "Issue",
+        "State",
+    }
+    missing_columns = required_columns - headers
+    if missing_columns:
+        raise ValueError(
+            "CSV is missing required risk-model columns: "
+            + ", ".join(sorted(missing_columns))
+        )
+    selected_columns = [
+        column
+        for column in (
+            DEFAULT_RESPONSE_COLUMN,
+            DEFAULT_NARRATIVE_COLUMN,
+            "Product",
+            "Issue",
+            "Sub-issue",
+            "State",
+        )
+        if column in headers
+    ]
+
+    # First pass obtains the true target counts for proportional sampling.
+    target_counts = {0: 0, 1: 0}
+    excluded_reasons: dict[str, int] = {}
+    total_rows = 0
+    for chunk in pd.read_csv(
+        csv_path,
+        usecols=[DEFAULT_RESPONSE_COLUMN],
+        dtype=str,
+        chunksize=chunksize,
+        encoding="utf-8-sig",
+    ):
+        target_labels, target_reasons = _derive_relief_targets(
+            chunk[DEFAULT_RESPONSE_COLUMN]
+        )
+        for target, count in target_labels.value_counts().items():
+            target_counts[int(target)] += int(count)
+        for reason, count in target_reasons.loc[target_labels.isna()].value_counts().items():
+            excluded_reasons[str(reason)] = int(count)
+        total_rows += len(chunk)
+
+    eligible_rows = sum(target_counts.values())
+    sample_size = min(max_rows, eligible_rows)
+    if sample_size < 2:
+        raise ValueError("Fewer than two complaints have a usable closed outcome.")
+
+    # Allocate sample slots in proportion to the observed outcome frequencies.
+    raw_quotas = {
+        label: sample_size * count / eligible_rows
+        for label, count in target_counts.items()
+    }
+    quotas = {
+        label: min(count, int(math.floor(raw_quotas[label])))
+        for label, count in target_counts.items()
+    }
+    remaining_slots = sample_size - sum(quotas.values())
+    labels_by_remainder = sorted(
+        target_counts,
+        key=lambda label: (-(raw_quotas[label] - math.floor(raw_quotas[label])), label),
+    )
+    for label in labels_by_remainder:
+        if remaining_slots <= 0:
+            break
+        if quotas[label] < target_counts[label]:
+            quotas[label] += 1
+            remaining_slots -= 1
+
+    # Random-key reservoirs yield reproducible uniform samples within each target.
+    rngs = {
+        label: np.random.default_rng(
+            int.from_bytes(
+                hashlib.sha256(f"{random_seed}:{label}".encode("utf-8")).digest()[:8],
+                "big",
+            )
+        )
+        for label in target_counts
+    }
+    reservoirs: dict[int, pd.DataFrame] = {}
+    source_row_id = 0
+    for chunk in pd.read_csv(
+        csv_path,
+        usecols=selected_columns,
+        dtype=str,
+        chunksize=chunksize,
+        encoding="utf-8-sig",
+    ):
+        chunk["_source_row_id"] = range(source_row_id, source_row_id + len(chunk))
+        source_row_id += len(chunk)
+        chunk["_target"], _ = _derive_relief_targets(
+            chunk[DEFAULT_RESPONSE_COLUMN]
+        )
+        eligible = chunk.loc[chunk["_target"].notna()].copy()
+        if eligible.empty:
+            continue
+
+        for label, class_rows in eligible.groupby("_target", sort=False):
+            label = int(label)
+            quota = quotas[label]
+            class_rows = class_rows.copy()
+            class_rows["_random_key"] = rngs[label].random(len(class_rows))
+            reservoir = reservoirs.get(label)
+            if reservoir is None:
+                reservoir = class_rows.iloc[0:0].copy()
+            reservoirs[label] = pd.concat(
+                [reservoir, class_rows],
+                ignore_index=True,
+            ).nsmallest(quota, columns="_random_key")
+
+    sampled = [
+        reservoir.drop(columns="_random_key")
+        for _, reservoir in sorted(reservoirs.items())
+    ]
+    sample = pd.concat(sampled, ignore_index=True)
+    if len(sample) != sample_size:
+        raise RuntimeError(
+            f"Expected {sample_size} sampled rows, but retained {len(sample)}."
+        )
+
+    sample = sample.drop(columns=["_target"])
+    sample = sample.rename(columns={"_source_row_id": "source_row_id"})
+    sample.insert(0, "sample_row_id", range(len(sample)))
+    manifest = {
+        "source_csv": str(csv_path),
+        "source_rows": total_rows,
+        "eligible_closed_outcome_rows": eligible_rows,
+        "source_target_counts": {
+            "no_monetary_relief": target_counts[0],
+            "monetary_relief": target_counts[1],
+        },
+        "excluded_outcome_counts": excluded_reasons,
+        "sample_size": len(sample),
+        "sample_class_counts": {
+            "no_monetary_relief": quotas[0],
+            "monetary_relief": quotas[1],
+        },
+        "random_seed": random_seed,
+        "narrative_column_available": DEFAULT_NARRATIVE_COLUMN in headers,
+        "columns_loaded": selected_columns,
+    }
+    sample.attrs["sampling_manifest"] = manifest
+    return sample, manifest
+
+
 def derive_relief_target(
     response: Any,
 ) -> tuple[int | None, str]:
-    """Label closed outcomes: explicit monetary relief is 1; other closed is 0."""
+    """Label explicit relief outcomes and exclude ambiguous or unresolved cases."""
     if response is None or pd.isna(response):
         return None, "missing response"
 
@@ -62,17 +282,24 @@ def derive_relief_target(
     if "in progress" in normalized_response or "pending" in normalized_response:
         return None, "unresolved response"
 
-    # Check the negated phrase first because it contains the words "monetary relief".
+    # Check negated/ambiguous relief statuses before matching the positive phrase.
     if re.search(r"\bnon[\s-]+monetary relief\b", normalized_response):
         return 0, "closed with non-monetary relief"
-    if "monetary relief" in normalized_response:
+    if normalized_response == "closed with monetary relief":
         return 1, "closed with monetary relief"
 
-    # Only closed records are treated as observed negative outcomes. Non-closed
-    # statuses are excluded because the eventual outcome is not yet observed.
-    if normalized_response.startswith("closed"):
+    # Only explicit closed non-relief CFPB outcomes are reliable negatives.
+    if normalized_response in {
+        "closed with explanation",
+        "closed without relief",
+    }:
         return 0, "closed without explicit monetary relief"
 
+    # Bare/legacy relief labels do not say whether relief was monetary.
+    if normalized_response in {"closed", "closed with relief"}:
+        return None, "ambiguous closed outcome"
+
+    # Unknown, untimely, and still open status values are not observed outcomes.
     return None, "unrecognized or unresolved response"
 
 
@@ -84,7 +311,6 @@ def prepare_risk_features(
     """Create safe pre-outcome features and return labels for closed complaints."""
     required_columns = {
         response_column,
-        narrative_column,
         "Product",
         "Issue",
         "State",
@@ -103,11 +329,30 @@ def prepare_risk_features(
         target_reasons.loc[~labeled_rows].value_counts().astype(int).to_dict()
     )
 
+    narrative_available = narrative_column in dataframe.columns
+
     # Generate deterministic regex and ontology features before any model fitting.
     feature_records: list[dict[str, Any]] = []
     labeled_dataframe = dataframe.loc[labeled_rows]
     for _, row in labeled_dataframe.iterrows():
-        narrative_features = extract_narrative_features(row[narrative_column])
+        if narrative_available:
+            narrative_features = extract_narrative_features(row[narrative_column])
+        else:
+            narrative_features = {
+                "narrative_clean": "",
+                "amount_mentioned": None,
+                "has_amount": False,
+                "amount_mentions": "",
+                "n_amount_mentions": 0,
+                "date_mentions": "",
+                "n_date_mentions": 0,
+                "has_date": False,
+                "has_account_mention": False,
+                "has_card_mention": False,
+                "has_account_card_mention": False,
+                "n_masked_tokens": 0,
+                "narrative_length": 0,
+            }
         risk_category, _ = map_risk_category(
             row["Product"],
             row["Issue"],
@@ -131,6 +376,13 @@ def prepare_risk_features(
     labels = targets.loc[labeled_rows].astype("int64").reset_index(drop=True)
     metadata = {
         "input_rows": len(dataframe),
+        "narrative_column_available": narrative_available,
+        "narrative_non_empty_rows": (
+            int(dataframe[narrative_column].fillna("").astype(str).str.strip().ne("").sum())
+            if narrative_available
+            else 0
+        ),
+        "regex_features_available": narrative_available,
         "labeled_rows": len(labels),
         "excluded_rows": int((~labeled_rows).sum()),
         "excluded_reasons": excluded_reasons,
@@ -141,9 +393,10 @@ def prepare_risk_features(
         "feature_columns": list(features.columns),
         "forbidden_feature_columns": list(FORBIDDEN_FEATURE_COLUMNS),
         "target_definition": (
-            "1 when Company response to consumer contains 'monetary relief'; "
-            "0 for other responses beginning with 'Closed'; missing, in-progress, "
-            "and other unresolved/unrecognized responses are excluded."
+            "1 only for the exact 'Closed with monetary relief' response; 0 for "
+            "'Closed with non-monetary relief', 'Closed with explanation', and "
+            "'Closed without relief'. Ambiguous, missing, unresolved, and "
+            "unrecognized responses are excluded."
         ),
     }
     return features, labels, metadata
@@ -180,7 +433,11 @@ def validate_model_split(
         )
 
 
-def make_feature_pipeline(include_text: bool) -> Any:
+def make_feature_pipeline(
+    include_text: bool,
+    include_regex: bool = True,
+    random_seed: int = DEFAULT_RANDOM_SEED,
+) -> Any:
     """Build a sparse structured/text preprocessing and balanced classifier pipeline."""
     try:
         from sklearn.compose import ColumnTransformer
@@ -216,10 +473,14 @@ def make_feature_pipeline(include_text: bool) -> Any:
             ),
         ]
     )
-    transformers: list[tuple[str, Any, Any]] = [
-        ("numeric", structured_pipeline, list(NUMERIC_FEATURES)),
-        ("categorical", categorical_pipeline, list(CATEGORICAL_FEATURES)),
-    ]
+    transformers: list[tuple[str, Any, Any]] = []
+    if include_regex:
+        transformers.append(
+            ("numeric", structured_pipeline, list(NUMERIC_FEATURES))
+        )
+    transformers.append(
+        ("categorical", categorical_pipeline, list(CATEGORICAL_FEATURES))
+    )
     if include_text:
         transformers.append(
             (
@@ -249,7 +510,7 @@ def make_feature_pipeline(include_text: bool) -> Any:
                     class_weight="balanced",
                     max_iter=1000,
                     solver="liblinear",
-                    random_state=DEFAULT_RANDOM_SEED,
+                    random_state=random_seed,
                 ),
             ),
         ]
@@ -297,6 +558,7 @@ def run_risk_model(
     test_size: float = DEFAULT_TEST_SIZE,
     cv_folds: int = DEFAULT_CV_FOLDS,
     random_seed: int = DEFAULT_RANDOM_SEED,
+    sampling_manifest: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Tune structured-only and text-plus-structured models on one train split."""
     tools = _load_modeling_tools()
@@ -325,19 +587,30 @@ def run_risk_model(
         random_state=random_seed,
     )
     # CV and hyperparameter selection use only the training split.
+    has_narratives = metadata["regex_features_available"] and (
+        features[TEXT_FEATURE].fillna("").astype(str).str.strip().ne("").any()
+    )
     model_grids = {
         "structured_only": {
-            "pipeline": make_feature_pipeline(include_text=False),
+            "pipeline": make_feature_pipeline(
+                include_text=False,
+                include_regex=has_narratives,
+                random_seed=random_seed,
+            ),
             "parameters": {"classifier__C": [0.1, 1.0, 10.0]},
         },
-        "text_and_structured": {
-            "pipeline": make_feature_pipeline(include_text=True),
+    }
+    if has_narratives:
+        model_grids["text_and_structured"] = {
+            "pipeline": make_feature_pipeline(
+                include_text=True,
+                random_seed=random_seed,
+            ),
             "parameters": {
                 "classifier__C": [0.1, 1.0, 10.0],
                 "features__narrative_text__ngram_range": [(1, 1), (1, 2)],
             },
         },
-    }
 
     model_results: dict[str, Any] = {}
     positive_label = 1
@@ -409,22 +682,35 @@ def run_risk_model(
             "test_size": test_size,
             "random_seed": random_seed,
             "cv_folds": cv_folds,
+            "sampling_manifest": sampling_manifest,
             "cv_scoring": "ROC-AUC",
             "class_weight": "balanced",
             "positive_class": "Monetary relief",
             "positive_threshold": 0.5,
             "predictor_columns": [
-                TEXT_FEATURE,
-                *NUMERIC_FEATURES,
+                *([TEXT_FEATURE] if has_narratives else []),
+                *(NUMERIC_FEATURES if has_narratives else []),
                 *CATEGORICAL_FEATURES,
             ],
             "removed_from_predictors": list(FORBIDDEN_FEATURE_COLUMNS),
             "comparison_note": (
-                "The structured-only model uses regex-derived numeric/boolean "
-                "features plus Product, risk_category, and State. The full model "
-                "adds TF-IDF narrative features. Both use the same stratified "
-                "holdout and training-only cross-validation."
+                "Both models use the same stratified holdout and training-only "
+                "cross-validation. When a non-empty narrative column exists, "
+                "structured-only uses regex-derived numeric/boolean features plus "
+                "Product, risk_category, and State, while the full model adds TF-IDF. "
+                "When narrative text is unavailable, regex and text features are "
+                "omitted and only the structured model is run."
             ),
+            "text_model_unavailable_reason": (
+                None
+                if has_narratives
+                else (
+                    "Input has no narrative column or all narrative values are "
+                    "empty; text and regex feature value-added comparison cannot "
+                    "be measured from this file."
+                )
+            ),
+            "regex_features_available": bool(has_narratives),
         }
     )
     results: dict[str, Any] = {
@@ -512,26 +798,30 @@ def main() -> None:
     parser.add_argument("--test-size", type=float, default=DEFAULT_TEST_SIZE)
     parser.add_argument("--cv-folds", type=int, default=DEFAULT_CV_FOLDS)
     parser.add_argument("--random-seed", type=int, default=DEFAULT_RANDOM_SEED)
+    parser.add_argument(
+        "--max-rows",
+        type=int,
+        default=DEFAULT_MAX_ROWS,
+        help="Maximum proportional outcome-stratified rows to model (default: 200000).",
+    )
+    parser.add_argument(
+        "--chunksize",
+        type=int,
+        default=DEFAULT_CHUNK_SIZE,
+        help="Rows per CSV scan chunk (default: 250000).",
+    )
     args = parser.parse_args()
 
     csv_path = Path(args.csv_path)
     if not csv_path.is_file():
         raise FileNotFoundError(f"CFPB CSV file not found: {csv_path.resolve()}")
 
-    # Load outcome source for labels and only pre-outcome fields for predictors.
-    columns = [
-        DEFAULT_RESPONSE_COLUMN,
-        DEFAULT_NARRATIVE_COLUMN,
-        "Product",
-        "Issue",
-        "Sub-issue",
-        "State",
-    ]
-    dataframe = pd.read_csv(
+    # Sample large CFPB files in bounded passes while preserving outcome prevalence.
+    dataframe, sampling_manifest = sample_modeling_rows(
         csv_path,
-        usecols=lambda column: column in columns,
-        dtype=str,
-        encoding="utf-8-sig",
+        max_rows=args.max_rows,
+        chunksize=args.chunksize,
+        random_seed=args.random_seed,
     )
     results = run_risk_model(
         dataframe,
@@ -539,6 +829,7 @@ def main() -> None:
         test_size=args.test_size,
         cv_folds=args.cv_folds,
         random_seed=args.random_seed,
+        sampling_manifest=sampling_manifest,
     )
     print_risk_results(results)
     print(f"\nReports written to {Path(args.output_dir).resolve()}")

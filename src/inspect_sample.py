@@ -2,8 +2,15 @@
 
 import argparse
 from pathlib import Path
+import sys
 
 import pandas as pd
+
+# Support the documented direct script invocation from the project root.
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from src.risk_model import derive_relief_target
 
 
 RELIEF_RESPONSE_COLUMN = "Company response to consumer"
@@ -54,19 +61,19 @@ def main() -> None:
             f"CSV is missing the expected class column {RELIEF_RESPONSE_COLUMN!r}."
         )
 
-    response_text = sample[RELIEF_RESPONSE_COLUMN].astype("string").str.strip()
-    relief_classes = pd.Series(
-        "No monetary relief",
-        index=sample.index,
-        dtype="string",
+    response_labels = sample[RELIEF_RESPONSE_COLUMN].map(derive_relief_target)
+    relief_classes = response_labels.map(
+        lambda result: (
+            "Monetary relief"
+            if result[0] == 1
+            else "No monetary relief"
+            if result[0] == 0
+            else f"Excluded: {result[1]}"
+        )
     )
-    relief_classes.loc[
-        response_text.str.contains("monetary relief", case=False, na=False)
-    ] = "Monetary relief"
-    relief_classes.loc[response_text.isna() | response_text.eq("")] = "Unknown response"
 
-    # Show the exploratory class balance while keeping unreported responses separate.
-    print("\nExploratory monetary-relief class counts:")
+    # Show observed outcome classes and statuses that should not become labels.
+    print("\nMonetary-relief outcome counts:")
     print(relief_classes.value_counts(dropna=False).to_string())
 
 

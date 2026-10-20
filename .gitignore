@@ -3,6 +3,7 @@ data/raw/*.csv
 data/processed/*.csv
 data/processed/baseline/
 data/processed/transformer/
+data/processed/risk_model/
 
 # Keep Python and Jupyter-generated files out of Git.
 __pycache__/

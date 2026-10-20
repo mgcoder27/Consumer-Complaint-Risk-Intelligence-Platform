@@ -3,6 +3,7 @@
 import argparse
 import json
 from pathlib import Path
+import sys
 from typing import Any
 
 import numpy as np
@@ -19,6 +20,10 @@ from transformers import (
     TrainingArguments,
     set_seed,
 )
+
+# Support direct script execution as well as package/module imports.
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.balanced_sample import (
     DEFAULT_RANDOM_SEED,

@@ -138,3 +138,41 @@ similar character runs and do not reconstruct hidden digits. Narrative
 cleanup normalizes text but does not remove names or otherwise de-identify
 consumer content. Protect processed complaint data and do not commit source
 or processed personal data.
+
+## Stage 3: Traditional NLP baseline
+
+The notebook `notebooks/03_traditional_nlp_baseline.ipynb` compares TF-IDF +
+Logistic Regression and TF-IDF + Linear SVM for the CFPB `Issue` label. Both
+pipelines use `class_weight="balanced"`. The reusable implementation is in
+`src/traditional_baseline.py`.
+
+Run the baseline from the project root:
+
+```powershell
+python src/traditional_baseline.py
+```
+
+The default input is `data/raw/complaints.csv`; both the narrative and `Issue`
+columns must be present. An alternate target, input file, or test split can be
+provided:
+
+```powershell
+python src/traditional_baseline.py "D:\data\complaints.csv" --target-column Issue --test-size 0.2 --random-seed 42
+```
+
+Rows with blank narratives or labels are excluded. The remaining rows are
+stratified into train and test sets with seed 42. The TF-IDF vectorizer is
+inside each scikit-learn pipeline and is fitted only on the training split,
+preventing vocabulary/IDF leakage into the held-out evaluation. The default
+features use lowercase unigram and bigram TF-IDF, and both classifiers apply
+balanced class weights.
+
+The command prints macro-F1, macro precision, macro recall, macro one-vs-rest
+ROC-AUC, a per-class precision/recall/F1/support report, a labeled confusion
+matrix, and the five lowest-F1 classes for each model. It also writes
+`traditional_baseline_report.json` and one confusion-matrix CSV per model under
+`data/processed/baseline/`. The report's weakest-class list is derived from the
+held-out scores; no performance scores are assumed before running on the actual
+dataset. Classes with fewer than two examples cannot participate in a
+stratified train/test split, so the code reports them explicitly rather than
+silently dropping or merging issue labels.

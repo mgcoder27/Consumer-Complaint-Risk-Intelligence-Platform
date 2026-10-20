@@ -10,11 +10,19 @@ existing complaint IDs.
 
 ### Project folders
 
-- `data/raw/` — place the downloaded CFPB CSV here.
+- `data/raw/` — contains the supplied CFPB snapshot as a gzip-compressed CSV.
 - `data/processed/` — reserved for later processing stages.
 - `sql/` — MySQL table definitions and reporting queries.
 - `notebooks/` — reserved for the later analysis and modeling stages.
 - `src/` — reusable Python scripts, including the MySQL loader.
+
+### Included CFPB data
+
+The supplied CFPB export is stored at `data/raw/complaints.csv.gz` and tracked
+with Git LFS. Its compressed size is about 333 MiB; it expands to 5.62 GB.
+Pandas reads `.csv.gz` files directly when given the path. The snapshot has
+18,531,443 rows and no complaint narrative column, so narrative-based stages
+cannot run on this data.
 
 ### Requirements and setup
 
@@ -24,17 +32,16 @@ existing complaint IDs.
    python -m pip install -r requirements.txt
    ```
 
-2. Download the CFPB complaint CSV and save it as
-   `data/raw/complaints.csv`. Inspect the first 1,000 rows before loading:
+2. Inspect the first 1,000 rows of the included compressed CSV:
 
    ```powershell
-   python src/inspect_sample.py
+   python src/inspect_sample.py data/raw/complaints.csv.gz
    ```
 
    Supply a different path or sample size if needed:
 
    ```powershell
-   python src/inspect_sample.py "D:\data\cfpb_complaints.csv" --sample-size 500
+   python src/inspect_sample.py "D:\data\cfpb_complaints.csv.gz" --sample-size 500
    ```
 
    The utility prints the CSV headers, missing-value counts, and monetary-relief
@@ -60,13 +67,13 @@ existing complaint IDs.
 6. Run the loader:
 
    ```powershell
-   python src/load_complaints.py
+   python src/load_complaints.py data/raw/complaints.csv.gz
    ```
 
    A different CSV path or chunk size can be supplied:
 
    ```powershell
-   python src/load_complaints.py "D:\data\cfpb_complaints.csv" --chunksize 2000
+   python src/load_complaints.py "D:\data\cfpb_complaints.csv.gz" --chunksize 2000
    ```
 
 The loader interprets `Company response to consumer` as `company_response`,
@@ -282,6 +289,13 @@ Run it from the project root and pass the source path if the file is not in
 
 ```powershell
 python src/risk_model.py "D:\desktop\Downloads\complaints.csv\complaints.csv"
+```
+
+After cloning with Git LFS enabled, use the included compressed snapshot
+directly:
+
+```powershell
+python src/risk_model.py "data/raw/complaints.csv.gz"
 ```
 
 For large files, the command scans in chunks and makes a seeded, class-

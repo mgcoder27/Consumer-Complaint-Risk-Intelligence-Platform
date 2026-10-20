@@ -68,7 +68,7 @@ snapshot and are summarized in the detailed report.
 | Company/state rate rankings | Show denominators and avoid unstable tiny-sample rankings | Hide rate ranks below 100 classifiable closed outcomes; the 100-record cutoff is a project threshold |
 
 For methodology, results from the supplied dataset, cautions, and
-recommendations, see the [detailed project report](reports/project_report.md).
+recommendations, see the [detailed project report](reports/project_report.docx).
 
 ## Stage 1: MySQL data engineering
 
@@ -463,7 +463,7 @@ alongside complaint counts and reporting limitations.
 ## Stage 8: Documentation
 
 This README is the quick-start and stage-by-stage reference. The detailed
-report in `reports/project_report.md` records the supplied data profile,
+report in `reports/project_report.docx` records the supplied data profile,
 measured descriptive findings, model evaluation status, design choices versus
 common methods, business recommendations, and limitations. It explicitly
 separates computed dashboard statistics from model metrics that were not

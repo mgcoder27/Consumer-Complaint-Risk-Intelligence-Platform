@@ -1,0 +1,5 @@
+﻿priority,recommendation,evidence,action
+1,Prioritize controls for the highest-volume product.,"Credit reporting or other personal consumer reports had 12,910,622 complaints.","Review the product's complaint drivers, remediation queue, and control testing coverage."
+2,Assign focused review to the leading mapped risk category.,"Credit Reporting Error mapped to 15,194,957 complaints.",Sample cases in this heuristic category and validate the mapping before treating it as confirmed misconduct.
+3,Review the company with the highest observed relief rate.,Premier Student Loan Center had a 52.31% monetary-relief rate across 130 closed outcomes.,Review the underlying cases and operational causes; this historical CFPB disposition rate is not a bank-cost estimate.
+4,Use state-level complaint intensity to guide regional review.,"TX had 2,571,937 complaints; per-capita comparison is unavailable without Census population data.",Compare complaint rates with customer exposure and local reporting patterns before reallocating compliance resources.

@@ -1,0 +1,23 @@
+{
+  "source_file": "D:\\desktop\\Sigma Web Development\\Projects\\Consumer Complaint Risk Intelligence Platform\\data\\raw\\complaints.csv.gz",
+  "source_rows": 18531443,
+  "population_data_available": false,
+  "mapped_taxonomy_combinations": 838,
+  "outputs": [
+    "business_recommendations.csv",
+    "company_relief_rates.csv",
+    "issue_summary.csv",
+    "model_drivers.csv",
+    "monthly_volume_trend.csv",
+    "product_summary.csv",
+    "risk_category_summary.csv",
+    "state_complaints_per_capita.csv"
+  ],
+  "important_caveats": [
+    "Monetary relief means CFPB's explicit Closed with monetary relief response.",
+    "Relief rates use only complaints with an explicit, classifiable closed outcome.",
+    "The ontology is heuristic and is not a confirmed fraud or misconduct label.",
+    "Complaint-per-capita values are blank until a valid Census population CSV is supplied.",
+    "No trained model driver values are emitted without validated Stage 6 output."
+  ]
+}

@@ -333,3 +333,59 @@ prospective prediction at complaint intake. If it is used to forecast future
 relief, define the prediction timestamp and verify that every predictor was
 available by that time. CFPB company response is an outcome proxy and may not
 represent the bank's actual monetary cost.
+
+## Stage 7: Power BI dashboard exports and insights
+
+Run the chunked exporter to create aggregated CSV tables without copying
+narratives, complaint IDs, or ZIP codes into the dashboard exports:
+
+```powershell
+python src/dashboard_exports.py
+```
+
+The default input is `data/raw/complaints.csv.gz`; the exports are written to
+`data/processed/powerbi/`. A state population CSV is optional. When available,
+pass it and its column names to calculate complaints per 100,000 residents:
+
+```powershell
+python src/dashboard_exports.py `
+  --population-csv data/raw/state_population.csv `
+  --population-state-column NAME `
+  --population-column POPESTIMATE2024
+```
+
+The script creates monthly volume/trend, product, issue, mapped risk-category,
+company relief-rate, and state complaint/per-capita CSVs, plus four
+number-backed business recommendations, a dashboard summary JSON, and a model
+drivers CSV. State population and per-capita fields remain blank until Census
+data is supplied. Relief rates use only explicit classifiable closed outcomes;
+company/state rankings include the outcome denominator, and rate ranks are
+provided only for groups with at least 100 such outcomes. The model drivers
+export clearly indicates when no fitted Stage 6 driver artifact is available;
+do not interpret ontology categories as model explanations.
+
+### Suggested Power BI page layout
+
+1. **Overview:** KPI cards for total complaints, explicit monetary-relief
+   count and rate; monthly complaint volume and month-over-month change line
+   chart; product volume bar chart. Use date and product slicers.
+2. **Risk categories:** complaint count and relief-rate cards; category volume
+   and relief-rate bars; a detail table of category and issue counts. Explain
+   that category assignment is a heuristic mapping, not a verified fraud
+   determination.
+3. **Companies and states:** ranked company table/bar chart with complaint
+   count, closed-outcome count, monetary-relief count, and relief rate; ranked
+   state table/map with complaint count, Census population, complaints per
+   100,000 residents, and relief rate. Keep denominator fields visible and
+   avoid ranking tiny samples as if their rates were stable.
+4. **Model drivers:** display validated Stage 6 model metrics and top positive
+   and negative fitted coefficients only after a model has been trained and
+   its driver export is available. Otherwise show the explicit unavailable
+   status rather than substituting ontology categories or invented drivers.
+
+For four actionable recommendations tied to this CFPB snapshot's observed
+numbers, see `data/processed/powerbi/business_recommendations.csv`. These are
+triage suggestions, not estimates of a bank's customer-level risk or monetary
+cost. Per-capita rates are more comparable across state population sizes than
+raw counts, but they are not customer-normalized rates and should be read
+alongside complaint counts and reporting limitations.

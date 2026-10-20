@@ -211,3 +211,42 @@ under `data/processed/transformer/`, which is Git-ignored. Consumer narratives
 may contain personal information; only process them in Colab if permitted by
 your data-handling requirements. No metrics or weakest-class claims are
 hard-coded: they are generated when the notebook runs on your CFPB snapshot.
+
+## Stage 5: Risk ontology and Census population features
+
+`src/ontology_features.py` maps CFPB `Product`, `Issue`, and optional
+`Sub-issue` values into five custom categories: `Fraud/Identity Theft`,
+`Billing Dispute`, `Credit Reporting Error`, `Debt Collection Misconduct`, and
+`Other`. Rule phrase lists and matching precedence are explicit in the Python
+dictionary `ONTOLOGY_RULES`; each complaint also receives a
+`risk_category_rule` feature describing the phrase or product fallback that
+matched. The ontology is a transparent heuristic, not an official CFPB label or
+a verified fraud decision. Review and tune it against the exact taxonomy values
+in your downloaded file.
+
+To enrich the complaint CSV with the Census state population file you provide,
+save it as `data/raw/state_population.csv`. By default the population CSV needs
+columns named `state` and `population`; pass the actual column names if they
+differ. For example, for Census headers `NAME` and `POPESTIMATE2024`:
+
+```powershell
+python src/ontology_features.py "data/raw/complaints.csv" "data/raw/state_population.csv" "data/processed/complaints_ontology_population.csv" --state-population-column NAME --population-column POPESTIMATE2024
+```
+
+The script normalizes state names, postal codes, and FIPS codes, counts all
+complaint rows by state in a first pass, then writes the original complaints
+plus `risk_category`, `risk_category_rule`, `state_code_normalized`,
+`state_complaint_count`, `state_population`, and
+`complaints_per_100k`. The rate formula is
+`state_complaint_count / state_population * 100000`. Unmatched or missing
+population values remain null; duplicate recognized states and invalid
+non-positive populations are reported as errors. A summary JSON next to the
+output lists state coverage. Raw and processed CSVs remain Git-ignored.
+
+Per-capita rates are fairer than raw counts when comparing states of different
+sizes because they normalize complaint volume by residents. Use counts and
+rates together: a small state's rate can be volatile, and population is not a
+bank's customer count. State rates also do not adjust for product mix, access
+to complaint channels, reporting behavior, or complaint severity. Use a Census
+population estimate whose year is appropriate for the complaint period; the
+feature does not automatically adjust for a mismatch in time periods.

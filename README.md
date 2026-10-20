@@ -176,3 +176,38 @@ held-out scores; no performance scores are assumed before running on the actual
 dataset. Classes with fewer than two examples cannot participate in a
 stratified train/test split, so the code reports them explicitly rather than
 silently dropping or merging issue labels.
+
+## Stage 4: DistilBERT transformer comparison
+
+`notebooks/04_transformer.ipynb` is designed for a free Google Colab GPU
+runtime. Select a T4 GPU when available, mount Google Drive, and set the CFPB
+CSV path in the notebook. It installs Transformers and Accelerate while using
+Colab's preinstalled PyTorch, then creates a reproducible approximately
+balanced sample of up to 20,000 complaints with non-empty narratives and
+`Issue` labels. `src/balanced_sample.py` scans the CSV in two passes using only
+those two columns, keeps a uniform random reservoir per class, and excludes
+singleton classes that cannot be stratified into both train and test sets. A JSON sample manifest records
+included/excluded classes, row counts, and the seed. The sample is balanced by
+including the largest eligible classes that fit the row cap; inspect the
+manifest because infrequent issues may be left out of this capped comparison.
+
+The notebook reruns Stage 3's TF-IDF Logistic Regression and Linear SVM on
+that same balanced sample, then passes their exact stratified 80/20 split
+positions (seed 42) to DistilBERT. Thus the comparison is fair across the
+three models, but its baseline scores are for the balanced sample and are not
+the same as Stage 3's full-data baseline evaluation. DistilBERT is
+`distilbert-base-uncased`, uses maximum sequence length 256, and trains for two
+epochs with the Trainer and GPU mixed precision when available.
+Training uses a fixed epoch count and does not use the held-out test set for
+checkpoint selection; the test rows are used only for final prediction and
+evaluation.
+
+The comparison outputs include a macro-F1 table, per-class report, confusion
+matrix, and up to five test examples in each direction where DistilBERT is
+right and the best-F1 traditional model is wrong, or vice versa. These paired
+examples help inspection but do not establish why a model got a case right.
+Reports, the saved model, and narrative-bearing error examples are written
+under `data/processed/transformer/`, which is Git-ignored. Consumer narratives
+may contain personal information; only process them in Colab if permitted by
+your data-handling requirements. No metrics or weakest-class claims are
+hard-coded: they are generated when the notebook runs on your CFPB snapshot.

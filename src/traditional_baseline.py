@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
@@ -146,14 +147,25 @@ def evaluate_baselines(
     )
     validate_stratified_split(labels, test_size)
 
-    # Split raw text before fitting any vectorizer, selector, or classifier.
-    x_train, x_test, y_train, y_test = train_test_split(
-        narratives,
-        labels,
+    # Split row positions before fitting any vectorizer, selector, or classifier.
+    train_positions, test_positions = train_test_split(
+        np.arange(len(narratives)),
         test_size=test_size,
         random_state=random_seed,
         stratify=labels,
     )
+    x_train = narratives.iloc[train_positions]
+    x_test = narratives.iloc[test_positions]
+    y_train = labels.iloc[train_positions]
+    y_test = labels.iloc[test_positions]
+    if "sample_row_id" in dataframe.columns:
+        valid_rows = (
+            dataframe[narrative_column].fillna("").astype(str).str.strip().ne("")
+            & dataframe[target_column].fillna("").astype(str).str.strip().ne("")
+        )
+        row_ids = dataframe.loc[valid_rows, "sample_row_id"].reset_index(drop=True)
+    else:
+        row_ids = pd.Series(range(len(narratives)))
     pipelines = make_pipelines(random_seed)
     all_classes = sorted(labels.unique())
     results: dict[str, Any] = {
@@ -165,6 +177,8 @@ def evaluate_baselines(
         "random_seed": random_seed,
         "test_size": test_size,
         "classes": all_classes,
+        "train_positions": train_positions.tolist(),
+        "test_positions": test_positions.tolist(),
         "models": {},
     }
 
@@ -192,6 +206,22 @@ def evaluate_baselines(
             class_name: model_report[class_name]
             for class_name in all_classes
         }
+        if len(all_classes) == 2:
+            binary_scores = (
+                class_scores[:, 1]
+                if getattr(class_scores, "ndim", 1) == 2
+                else class_scores
+            )
+            macro_roc_auc = roc_auc_score(y_test, binary_scores)
+        else:
+            macro_roc_auc = roc_auc_score(
+                y_test,
+                class_scores,
+                labels=classifier.classes_,
+                multi_class="ovr",
+                average="macro",
+            )
+
         macro_metrics = {
             "macro_f1": f1_score(
                 y_test, predictions, labels=all_classes, average="macro", zero_division=0
@@ -202,13 +232,7 @@ def evaluate_baselines(
             "macro_recall": recall_score(
                 y_test, predictions, labels=all_classes, average="macro", zero_division=0
             ),
-            "macro_roc_auc_ovr": roc_auc_score(
-                y_test,
-                class_scores,
-                labels=classifier.classes_,
-                multi_class="ovr",
-                average="macro",
-            ),
+            "macro_roc_auc_ovr": macro_roc_auc,
         }
         results["models"][model_name] = {
             "metrics": macro_metrics,
@@ -235,6 +259,15 @@ def evaluate_baselines(
                     class_result["class"],
                 ),
             )[:5],
+            "test_predictions": [
+                {
+                    "sample_row_id": int(row_ids.iloc[position]),
+                    "narrative": narratives.iloc[position],
+                    "actual": labels.iloc[position],
+                    "predicted": str(prediction),
+                }
+                for position, prediction in zip(test_positions, predictions)
+            ],
         }
 
     return results
@@ -244,12 +277,33 @@ def write_results(results: dict[str, Any], output_dir: Path) -> None:
     """Save readable metric/report JSON and one labeled confusion CSV per model."""
     output_dir.mkdir(parents=True, exist_ok=True)
     report_path = output_dir / "traditional_baseline_report.json"
+    # Narratives are written only to a local, ignored CSV for paired error review.
+    public_results = {
+        **{
+            key: value
+            for key, value in results.items()
+            if key not in {"train_positions", "test_positions"}
+        },
+        "models": {
+            model_name: {
+                key: value
+                for key, value in model_result.items()
+                if key != "test_predictions"
+            }
+            for model_name, model_result in results["models"].items()
+        },
+    }
     report_path.write_text(
-        json.dumps(results, indent=2, ensure_ascii=False),
+        json.dumps(public_results, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
 
     for model_name, model_result in results["models"].items():
+        pd.DataFrame(model_result["test_predictions"]).to_csv(
+            output_dir / f"{model_name}_test_predictions.csv",
+            index=False,
+            encoding="utf-8-sig",
+        )
         matrix = pd.DataFrame(
             model_result["confusion_matrix"],
             index=model_result["confusion_matrix_labels"],

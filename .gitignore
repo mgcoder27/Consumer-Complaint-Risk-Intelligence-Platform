@@ -1,0 +1,8 @@
+# Keep locally downloaded or generated CFPB complaint data out of Git.
+data/raw/*.csv
+data/processed/*.csv
+
+# Keep Python and Jupyter-generated files out of Git.
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/

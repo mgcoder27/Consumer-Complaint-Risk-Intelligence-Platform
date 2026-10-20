@@ -104,3 +104,37 @@ Run the statements in `sql/reporting_queries.sql` against the loaded database.
 
 The SQL uses MySQL 8 window functions for the per-state ranking and
 month-over-month comparison.
+
+## Stage 2: Regex narrative features
+
+`src/regex_features.py` contains reusable text-cleaning and feature-extraction
+functions. The notebook `notebooks/02_regex_features.ipynb` demonstrates five
+synthetic before/after examples and explains each pattern. The examples are
+fabricated and do not contain CFPB consumer information.
+
+To process the downloaded CFPB CSV in chunks and save a feature-enriched copy:
+
+```powershell
+python src/regex_features.py
+```
+
+The defaults read `data/raw/complaints.csv` and write
+`data/processed/complaints_regex_features.csv`. Supply different input/output
+paths and a chunk size when needed:
+
+```powershell
+python src/regex_features.py "D:\data\complaints.csv" "D:\data\complaints_features.csv" --chunksize 20000
+```
+
+The extractor adds `narrative_clean`, `amount_mentioned` (the first explicit
+dollar/USD amount as a number), `amount_mentions`, `n_amount_mentions`,
+`has_amount`, `date_mentions`, `n_date_mentions`, `has_date`,
+`has_account_mention`, `has_card_mention`, `has_account_card_mention`,
+`n_masked_tokens`, and `narrative_length`. Amount and date matches require
+recognizable formats; date matching does not validate calendar values or infer
+ambiguous date ordering. Account/card flags indicate text mentions, not
+verified exposures. Masked-token counts count visible `XXXX`, `****`, or
+similar character runs and do not reconstruct hidden digits. Narrative
+cleanup normalizes text but does not remove names or otherwise de-identify
+consumer content. Protect processed complaint data and do not commit source
+or processed personal data.

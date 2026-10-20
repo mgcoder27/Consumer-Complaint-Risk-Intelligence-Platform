@@ -1,0 +1,55 @@
+table 'Model Drivers'
+	lineageTag: abfed64e-6348-51e6-855c-244bdf7def37
+
+	column driver_rank
+		dataType: int64
+		lineageTag: 26ab08f0-1822-545b-acd1-225296a5a0b3
+		summarizeBy: sum
+		sourceColumn: driver_rank
+
+	column model
+		dataType: string
+		lineageTag: b972dbce-af38-5ade-a63f-8d640c8a5b21
+		summarizeBy: none
+		sourceColumn: model
+
+	column feature
+		dataType: string
+		lineageTag: 3de17438-0bbd-5e14-b92c-fc590e5b5f45
+		summarizeBy: none
+		sourceColumn: feature
+
+	column coefficient
+		dataType: double
+		lineageTag: 59ed8063-a004-54ff-8988-04397e14983d
+		summarizeBy: sum
+		sourceColumn: coefficient
+
+	column direction
+		dataType: string
+		lineageTag: 9207c3f3-5a60-5803-bf4f-583ac529bfc6
+		summarizeBy: none
+		sourceColumn: direction
+
+	column status
+		dataType: string
+		lineageTag: 74d39e56-e45c-5438-82de-39fb47c7ccbf
+		summarizeBy: none
+		sourceColumn: status
+
+	partition 'Model Drivers-dbdc8766-472d-553a-9499-5eeacc1acce4' = m
+		mode: import
+		source =
+			let
+				Source = Csv.Document(
+					File.Contents(DataFolder & "\model_drivers.csv"),
+					[Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]
+				),
+				PromotedHeaders = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				TypedColumns = Table.TransformColumnTypes(
+					PromotedHeaders, {{"driver_rank", Int64.Type}, {"model", type text}, {"feature", type text}, {"coefficient", type number}, {"direction", type text}, {"status", type text}}
+				)
+			in
+				TypedColumns
+
+	annotation PBI_ResultType = Table

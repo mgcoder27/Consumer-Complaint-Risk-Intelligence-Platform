@@ -1,0 +1,13 @@
+model Model
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	discourageImplicitMeasures
+	ref table 'Monthly Volume'
+	ref table 'Product Summary'
+	ref table 'Issue Summary'
+	ref table 'Risk Categories'
+	ref table 'Company Relief Rates'
+	ref table 'Company Focus'
+	ref table 'State Complaints'
+	ref table 'Business Recommendations'
+	ref table 'Model Drivers'

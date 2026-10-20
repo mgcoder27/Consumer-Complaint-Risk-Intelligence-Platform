@@ -1,0 +1,60 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json",
+  "name": "d872e435-079c-5984-9",
+  "position": {
+    "x": 325,
+    "y": 20,
+    "z": 6000,
+    "height": 115,
+    "width": 285,
+    "tabOrder": 6000
+  },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Monthly Volume"
+                    }
+                  },
+                  "Property": "Monetary Relief Count"
+                }
+              },
+              "queryRef": "Monthly Volume.Monetary Relief Count",
+              "nativeQueryRef": "Monetary Relief Count"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Monetary Relief Outcomes'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

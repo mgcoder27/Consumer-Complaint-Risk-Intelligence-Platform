@@ -5,6 +5,10 @@ data/processed/baseline/
 data/processed/transformer/
 data/processed/risk_model/
 
+# Keep Power BI Desktop caches and user-specific settings out of Git.
+powerbi/**/*.pbi/localSettings.json
+powerbi/**/*.pbi/cache.abf
+
 # Keep Python and Jupyter-generated files out of Git.
 __pycache__/
 *.py[cod]

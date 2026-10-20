@@ -1,0 +1,102 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json",
+  "name": "175e77fc-601d-50b7-a",
+  "position": {
+    "x": 20,
+    "y": 475,
+    "z": 6000,
+    "height": 160,
+    "width": 790,
+    "tabOrder": 6000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Monthly Volume"
+                    }
+                  },
+                  "Property": "month"
+                }
+              },
+              "queryRef": "Monthly Volume.month",
+              "nativeQueryRef": "month"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Monthly Volume"
+                    }
+                  },
+                  "Property": "complaint_count"
+                }
+              },
+              "queryRef": "Monthly Volume.complaint_count",
+              "nativeQueryRef": "complaint_count"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Monthly Volume"
+                    }
+                  },
+                  "Property": "month_over_month_change"
+                }
+              },
+              "queryRef": "Monthly Volume.month_over_month_change",
+              "nativeQueryRef": "month_over_month_change"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Monthly Volume"
+                    }
+                  },
+                  "Property": "month_over_month_change_pct"
+                }
+              },
+              "queryRef": "Monthly Volume.month_over_month_change_pct",
+              "nativeQueryRef": "month_over_month_change_pct"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Monthly changes'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

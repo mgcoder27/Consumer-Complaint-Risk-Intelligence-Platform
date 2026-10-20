@@ -1,0 +1,86 @@
+table 'Monthly Volume'
+	lineageTag: 68edcbef-3726-595b-a615-2d9b2879d336
+
+	measure 'Total Complaints' = SUM('Monthly Volume'[complaint_count])
+		formatString: #,##0
+		lineageTag: 27d77833-862f-515e-b090-c149d1e8467d
+
+	measure 'Monetary Relief Count' = SUM('Monthly Volume'[monetary_relief_count])
+		formatString: #,##0
+		lineageTag: 0c1a65b9-406c-5f89-8610-b4ffed60c0e7
+
+	measure 'Closed Outcomes' = SUM('Monthly Volume'[closed_outcome_count])
+		formatString: #,##0
+		lineageTag: 4b644cce-5db2-5d74-8546-63061bc8c742
+
+	measure 'Monetary Relief Rate' = DIVIDE([Monetary Relief Count], [Closed Outcomes])
+		formatString: 0.00%
+		lineageTag: 3aacbf81-cf57-5973-b7c4-6a4b2e2c9a1c
+
+	column month
+		dataType: string
+		lineageTag: f7a14aab-981f-5df5-b4a2-cb58877c1126
+		summarizeBy: none
+		sourceColumn: month
+
+		annotation SummarizationSetBy = User
+
+	column complaint_count
+		dataType: int64
+		lineageTag: d5dc0bb4-be2e-5b3f-a316-5895753e3c0b
+		summarizeBy: sum
+		sourceColumn: complaint_count
+
+	column closed_outcome_count
+		dataType: int64
+		lineageTag: 9cb8bda1-fe64-5fdf-9a92-a21f038bcae6
+		summarizeBy: sum
+		sourceColumn: closed_outcome_count
+
+	column monetary_relief_count
+		dataType: int64
+		lineageTag: 1a85296b-b729-5ba6-8611-d2378da14a9b
+		summarizeBy: sum
+		sourceColumn: monetary_relief_count
+
+	column monetary_relief_rate_pct
+		dataType: double
+		lineageTag: 917eaec7-d1a1-5bad-af27-0675be3cd188
+		summarizeBy: none
+		sourceColumn: monetary_relief_rate_pct
+		formatString: 0.00
+
+	column previous_month_count
+		dataType: double
+		lineageTag: 4e5aa13e-b61a-5d0e-b87b-a07c8cc37714
+		summarizeBy: sum
+		sourceColumn: previous_month_count
+
+	column month_over_month_change
+		dataType: double
+		lineageTag: e5c583ff-727c-565d-9bc8-0eaf5b4c61c7
+		summarizeBy: sum
+		sourceColumn: month_over_month_change
+
+	column month_over_month_change_pct
+		dataType: double
+		lineageTag: 3d75cb1a-64ef-5539-9415-cf166d17d75f
+		summarizeBy: sum
+		sourceColumn: month_over_month_change_pct
+
+	partition 'Monthly Volume-29d35982-81aa-5858-a6a4-21cafbc4779c' = m
+		mode: import
+		source =
+			let
+				Source = Csv.Document(
+					File.Contents(DataFolder & "\monthly_volume_trend.csv"),
+					[Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]
+				),
+				PromotedHeaders = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				TypedColumns = Table.TransformColumnTypes(
+					PromotedHeaders, {{"month", type text}, {"complaint_count", Int64.Type}, {"closed_outcome_count", Int64.Type}, {"monetary_relief_count", Int64.Type}, {"monetary_relief_rate_pct", type number}, {"previous_month_count", type number}, {"month_over_month_change", type number}, {"month_over_month_change_pct", type number}}
+				)
+			in
+				TypedColumns
+
+	annotation PBI_ResultType = Table

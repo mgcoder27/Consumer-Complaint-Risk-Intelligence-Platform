@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "artifacts": [
+    {
+      "report": {
+        "path": "ConsumerComplaintDashboard.Report"
+      }
+    },
+    {
+      "semanticModel": {
+        "path": "ConsumerComplaintDashboard.SemanticModel"
+      }
+    }
+  ],
+  "settings": {
+    "enableAutoRecovery": true
+  }
+}

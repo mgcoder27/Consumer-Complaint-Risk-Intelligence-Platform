@@ -1,0 +1,96 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json",
+  "name": "ff2958b6-75aa-5b0b-b",
+  "position": {
+    "x": 20,
+    "y": 155,
+    "z": 6000,
+    "height": 300,
+    "width": 790,
+    "tabOrder": 6000
+  },
+  "visual": {
+    "visualType": "lineChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Monthly Volume"
+                    }
+                  },
+                  "Property": "month"
+                }
+              },
+              "queryRef": "Monthly Volume.month",
+              "nativeQueryRef": "month"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Monthly Volume"
+                    }
+                  },
+                  "Property": "Total Complaints"
+                }
+              },
+              "queryRef": "Monthly Volume.Total Complaints",
+              "nativeQueryRef": "Total Complaints"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Monthly Volume"
+                  }
+                },
+                "Property": "month"
+              }
+            },
+            "direction": "Ascending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Monthly Complaint Volume'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

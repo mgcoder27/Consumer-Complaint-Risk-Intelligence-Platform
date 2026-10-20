@@ -1,0 +1,66 @@
+table 'Risk Categories'
+	lineageTag: 2a7c19d6-2345-5d12-be18-7b8786f308f2
+
+	measure 'Category Complaints' = SUM('Risk Categories'[complaint_count])
+		formatString: #,##0
+		lineageTag: ad1a2d3c-5177-56e5-81bd-8ccc22426cb3
+
+	measure 'Category Relief Count' = SUM('Risk Categories'[monetary_relief_count])
+		formatString: #,##0
+		lineageTag: 80c1bdda-d4d5-57da-a5b5-967adc51c21c
+
+	column risk_category
+		dataType: string
+		lineageTag: f43dd202-085f-5fa6-bc5d-bd50dd0107f5
+		summarizeBy: none
+		sourceColumn: risk_category
+
+		annotation SummarizationSetBy = User
+
+	column complaint_count
+		dataType: int64
+		lineageTag: 27b1e1dd-f0e1-5e42-ad3f-6b9e70d8d0a8
+		summarizeBy: sum
+		sourceColumn: complaint_count
+
+	column closed_outcome_count
+		dataType: int64
+		lineageTag: 18da90e9-4b44-5641-bc5e-81f59d8d9d21
+		summarizeBy: sum
+		sourceColumn: closed_outcome_count
+
+	column monetary_relief_count
+		dataType: int64
+		lineageTag: 6408820c-3578-5b8d-bd5c-3b96032c131e
+		summarizeBy: sum
+		sourceColumn: monetary_relief_count
+
+	column monetary_relief_rate_pct
+		dataType: double
+		lineageTag: b174d064-405e-5d78-b199-263a02be1833
+		summarizeBy: none
+		sourceColumn: monetary_relief_rate_pct
+		formatString: 0.00
+
+	column complaint_volume_rank
+		dataType: int64
+		lineageTag: 1a089a58-c469-526f-a096-3fad2a8c8feb
+		summarizeBy: sum
+		sourceColumn: complaint_volume_rank
+
+	partition 'Risk Categories-bd7751e7-ee63-5e3e-8f3f-5e43f7e64986' = m
+		mode: import
+		source =
+			let
+				Source = Csv.Document(
+					File.Contents(DataFolder & "\risk_category_summary.csv"),
+					[Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]
+				),
+				PromotedHeaders = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				TypedColumns = Table.TransformColumnTypes(
+					PromotedHeaders, {{"risk_category", type text}, {"complaint_count", Int64.Type}, {"closed_outcome_count", Int64.Type}, {"monetary_relief_count", Int64.Type}, {"monetary_relief_rate_pct", type number}, {"complaint_volume_rank", Int64.Type}}
+				)
+			in
+				TypedColumns
+
+	annotation PBI_ResultType = Table

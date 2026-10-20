@@ -1,0 +1,96 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json",
+  "name": "3404daed-3443-50fc-9",
+  "position": {
+    "x": 20,
+    "y": 20,
+    "z": 3000,
+    "height": 300,
+    "width": 560,
+    "tabOrder": 3000
+  },
+  "visual": {
+    "visualType": "clusteredBarChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Risk Categories"
+                    }
+                  },
+                  "Property": "risk_category"
+                }
+              },
+              "queryRef": "Risk Categories.risk_category",
+              "nativeQueryRef": "risk_category"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Risk Categories"
+                    }
+                  },
+                  "Property": "Category Complaints"
+                }
+              },
+              "queryRef": "Risk Categories.Category Complaints",
+              "nativeQueryRef": "Category Complaints"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Risk Categories"
+                  }
+                },
+                "Property": "Category Complaints"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Complaints by Heuristic Risk Category'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

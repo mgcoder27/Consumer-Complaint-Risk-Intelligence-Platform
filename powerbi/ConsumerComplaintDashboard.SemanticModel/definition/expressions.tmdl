@@ -1,0 +1,3 @@
+expression DataFolder = "D:\desktop\Sigma Web Development\Projects\Consumer Complaint Risk Intelligence Platform\data\processed\powerbi" meta [IsParameterQuery = true, Type = "Text", IsParameterQueryRequired = true]
+	lineageTag: 6c66d772-9487-577f-92f4-f6b1cef91dd6
+	annotation PBI_ResultType = Text

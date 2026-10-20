@@ -1,0 +1,68 @@
+table 'Company Focus'
+	lineageTag: 9b2c1ff9-81ed-5051-87be-0a27160d58ae
+
+	column company
+		dataType: string
+		lineageTag: ac4ddd62-02f2-5bba-af0a-81b903c8d739
+		summarizeBy: none
+		sourceColumn: company
+
+		annotation SummarizationSetBy = User
+
+	column complaint_count
+		dataType: int64
+		lineageTag: 59557276-68c1-5beb-bf76-c0729b3c46c8
+		summarizeBy: sum
+		sourceColumn: complaint_count
+
+	column closed_outcome_count
+		dataType: int64
+		lineageTag: 92e27941-1960-5e58-90ca-0870392f8c59
+		summarizeBy: sum
+		sourceColumn: closed_outcome_count
+
+	column monetary_relief_count
+		dataType: int64
+		lineageTag: 9202b869-ab03-57ef-8ff1-560f9cc97326
+		summarizeBy: sum
+		sourceColumn: monetary_relief_count
+
+	column monetary_relief_rate_pct
+		dataType: double
+		lineageTag: 5b702f8d-1f74-5088-b60d-68e057326106
+		summarizeBy: none
+		sourceColumn: monetary_relief_rate_pct
+		formatString: 0.00
+
+	column complaint_volume_rank
+		dataType: int64
+		lineageTag: f1d1c322-3ae1-5032-bbb5-27ca03ec1892
+		summarizeBy: sum
+		sourceColumn: complaint_volume_rank
+
+	column relief_rate_rank_min_100_outcomes
+		dataType: double
+		lineageTag: b57bef9c-2d26-58de-839e-081bce5ff9f7
+		summarizeBy: sum
+		sourceColumn: relief_rate_rank_min_100_outcomes
+
+	partition 'Company Focus-629c2de7-e05c-5dba-8a51-eb0f24fe5826' = m
+		mode: import
+		source =
+			let
+				Source = Csv.Document(
+					File.Contents(DataFolder & "\company_relief_rates.csv"),
+					[Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]
+				),
+				PromotedHeaders = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				TypedColumns = Table.TransformColumnTypes(
+					PromotedHeaders, {{"company", type text}, {"complaint_count", Int64.Type}, {"closed_outcome_count", Int64.Type}, {"monetary_relief_count", Int64.Type}, {"monetary_relief_rate_pct", type number}, {"complaint_volume_rank", Int64.Type}, {"relief_rate_rank_min_100_outcomes", type number}}
+				)
+,
+				EligibleCompanies = Table.SelectRows(TypedColumns, each [relief_rate_rank_min_100_outcomes] <> null),
+				SortedCompanies = Table.Sort(EligibleCompanies, {{"relief_rate_rank_min_100_outcomes", Order.Ascending}}),
+				TopCompanies = Table.FirstN(SortedCompanies, 15)
+			in
+				TopCompanies
+
+	annotation PBI_ResultType = Table

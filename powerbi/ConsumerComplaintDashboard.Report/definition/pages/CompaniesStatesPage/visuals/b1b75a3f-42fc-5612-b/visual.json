@@ -1,0 +1,96 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json",
+  "name": "b1b75a3f-42fc-5612-b",
+  "position": {
+    "x": 710,
+    "y": 20,
+    "z": 3000,
+    "height": 350,
+    "width": 550,
+    "tabOrder": 3000
+  },
+  "visual": {
+    "visualType": "clusteredBarChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "State Complaints"
+                    }
+                  },
+                  "Property": "state"
+                }
+              },
+              "queryRef": "State Complaints.state",
+              "nativeQueryRef": "state"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "State Complaints"
+                    }
+                  },
+                  "Property": "State Complaints"
+                }
+              },
+              "queryRef": "State Complaints.State Complaints",
+              "nativeQueryRef": "State Complaints"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "State Complaints"
+                  }
+                },
+                "Property": "State Complaints"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Complaint Volume by State'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

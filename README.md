@@ -434,6 +434,20 @@ provided only for groups with at least 100 such outcomes. The model drivers
 export clearly indicates when no fitted Stage 6 driver artifact is available;
 do not interpret ontology categories as model explanations.
 
+Build the native Power BI project from those CSV exports:
+
+```powershell
+python src/build_powerbi_project.py
+```
+
+Open `powerbi/ConsumerComplaintDashboard.pbip` in Power BI Desktop and refresh
+the local CSV sources if prompted. The project contains four report pages and
+an editable TMDL semantic model. Its `DataFolder` parameter is generated from
+the current project location, so regenerate the project after cloning or
+moving the repository. Power BI Desktop is required to render, refresh, and
+save the final report; the generated PBIP could not be opened or visually
+validated in this environment.
+
 ### Suggested Power BI page layout
 
 1. **Overview:** KPI cards for total complaints, explicit monetary-relief

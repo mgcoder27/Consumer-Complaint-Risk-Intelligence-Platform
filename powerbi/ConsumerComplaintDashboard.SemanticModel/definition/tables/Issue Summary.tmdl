@@ -1,0 +1,62 @@
+table 'Issue Summary'
+	lineageTag: 182bde31-1b65-5865-b1c0-8a82468af7f5
+
+	measure 'Issue Complaints' = SUM('Issue Summary'[complaint_count])
+		formatString: #,##0
+		lineageTag: 40827fdc-be6e-5bb7-9b9d-a8bb2b33c53b
+
+	column issue
+		dataType: string
+		lineageTag: d400f18d-43a6-5895-9439-ce7ccb81e485
+		summarizeBy: none
+		sourceColumn: issue
+
+		annotation SummarizationSetBy = User
+
+	column complaint_count
+		dataType: int64
+		lineageTag: cde30490-8184-5028-8fbd-3fb01d24d4ec
+		summarizeBy: sum
+		sourceColumn: complaint_count
+
+	column closed_outcome_count
+		dataType: int64
+		lineageTag: 92e7d3c5-30d9-569c-a751-a12128f033b6
+		summarizeBy: sum
+		sourceColumn: closed_outcome_count
+
+	column monetary_relief_count
+		dataType: int64
+		lineageTag: 0dc2c902-0773-5c14-a54b-f2e069224573
+		summarizeBy: sum
+		sourceColumn: monetary_relief_count
+
+	column monetary_relief_rate_pct
+		dataType: double
+		lineageTag: ab6dfd32-96c5-5598-b714-966d77874898
+		summarizeBy: none
+		sourceColumn: monetary_relief_rate_pct
+		formatString: 0.00
+
+	column complaint_volume_rank
+		dataType: int64
+		lineageTag: 3d571990-4d4f-52f9-8192-ac02be4cfcfc
+		summarizeBy: sum
+		sourceColumn: complaint_volume_rank
+
+	partition 'Issue Summary-073fb67d-e180-5467-8241-9786a6c29fdf' = m
+		mode: import
+		source =
+			let
+				Source = Csv.Document(
+					File.Contents(DataFolder & "\issue_summary.csv"),
+					[Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]
+				),
+				PromotedHeaders = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				TypedColumns = Table.TransformColumnTypes(
+					PromotedHeaders, {{"issue", type text}, {"complaint_count", Int64.Type}, {"closed_outcome_count", Int64.Type}, {"monetary_relief_count", Int64.Type}, {"monetary_relief_rate_pct", type number}, {"complaint_volume_rank", Int64.Type}}
+				)
+			in
+				TypedColumns
+
+	annotation PBI_ResultType = Table

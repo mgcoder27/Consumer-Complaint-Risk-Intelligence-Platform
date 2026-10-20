@@ -1,0 +1,116 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json",
+  "name": "4c52b35c-9273-5bc8-b",
+  "position": {
+    "x": 600,
+    "y": 20,
+    "z": 3000,
+    "height": 300,
+    "width": 660,
+    "tabOrder": 3000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Risk Categories"
+                    }
+                  },
+                  "Property": "risk_category"
+                }
+              },
+              "queryRef": "Risk Categories.risk_category",
+              "nativeQueryRef": "risk_category"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Risk Categories"
+                    }
+                  },
+                  "Property": "complaint_count"
+                }
+              },
+              "queryRef": "Risk Categories.complaint_count",
+              "nativeQueryRef": "complaint_count"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Risk Categories"
+                    }
+                  },
+                  "Property": "closed_outcome_count"
+                }
+              },
+              "queryRef": "Risk Categories.closed_outcome_count",
+              "nativeQueryRef": "closed_outcome_count"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Risk Categories"
+                    }
+                  },
+                  "Property": "monetary_relief_count"
+                }
+              },
+              "queryRef": "Risk Categories.monetary_relief_count",
+              "nativeQueryRef": "monetary_relief_count"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Risk Categories"
+                    }
+                  },
+                  "Property": "monetary_relief_rate_pct"
+                }
+              },
+              "queryRef": "Risk Categories.monetary_relief_rate_pct",
+              "nativeQueryRef": "monetary_relief_rate_pct"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Category volumes and observed relief rates'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

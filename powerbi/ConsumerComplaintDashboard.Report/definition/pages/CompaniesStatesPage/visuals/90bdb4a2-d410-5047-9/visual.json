@@ -1,0 +1,116 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json",
+  "name": "90bdb4a2-d410-5047-9",
+  "position": {
+    "x": 710,
+    "y": 395,
+    "z": 3000,
+    "height": 195,
+    "width": 550,
+    "tabOrder": 3000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "State Complaints"
+                    }
+                  },
+                  "Property": "state"
+                }
+              },
+              "queryRef": "State Complaints.state",
+              "nativeQueryRef": "state"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "State Complaints"
+                    }
+                  },
+                  "Property": "complaint_count"
+                }
+              },
+              "queryRef": "State Complaints.complaint_count",
+              "nativeQueryRef": "complaint_count"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "State Complaints"
+                    }
+                  },
+                  "Property": "population"
+                }
+              },
+              "queryRef": "State Complaints.population",
+              "nativeQueryRef": "population"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "State Complaints"
+                    }
+                  },
+                  "Property": "complaints_per_100k"
+                }
+              },
+              "queryRef": "State Complaints.complaints_per_100k",
+              "nativeQueryRef": "complaints_per_100k"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "State Complaints"
+                    }
+                  },
+                  "Property": "monetary_relief_rate_pct"
+                }
+              },
+              "queryRef": "State Complaints.monetary_relief_rate_pct",
+              "nativeQueryRef": "monetary_relief_rate_pct"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'State counts and per-capita fields'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json",
+  "name": "809ecf12-b9dd-513f-a",
+  "position": {
+    "x": 20,
+    "y": 20,
+    "z": 3000,
+    "height": 570,
+    "width": 660,
+    "tabOrder": 3000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Company Focus"
+                    }
+                  },
+                  "Property": "relief_rate_rank_min_100_outcomes"
+                }
+              },
+              "queryRef": "Company Focus.relief_rate_rank_min_100_outcomes",
+              "nativeQueryRef": "relief_rate_rank_min_100_outcomes"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Company Focus"
+                    }
+                  },
+                  "Property": "company"
+                }
+              },
+              "queryRef": "Company Focus.company",
+              "nativeQueryRef": "company"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Company Focus"
+                    }
+                  },
+                  "Property": "closed_outcome_count"
+                }
+              },
+              "queryRef": "Company Focus.closed_outcome_count",
+              "nativeQueryRef": "closed_outcome_count"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Company Focus"
+                    }
+                  },
+                  "Property": "monetary_relief_count"
+                }
+              },
+              "queryRef": "Company Focus.monetary_relief_count",
+              "nativeQueryRef": "monetary_relief_count"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Company Focus"
+                    }
+                  },
+                  "Property": "monetary_relief_rate_pct"
+                }
+              },
+              "queryRef": "Company Focus.monetary_relief_rate_pct",
+              "nativeQueryRef": "monetary_relief_rate_pct"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Company Focus"
+                  }
+                },
+                "Property": "relief_rate_rank_min_100_outcomes"
+              }
+            },
+            "direction": "Ascending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Companies: highest relief rates (minimum 100 closed outcomes)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

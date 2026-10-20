@@ -1,0 +1,102 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json",
+  "name": "1043056c-2a51-5c9e-8",
+  "position": {
+    "x": 20,
+    "y": 190,
+    "z": 2000,
+    "height": 430,
+    "width": 1240,
+    "tabOrder": 2000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Business Recommendations"
+                    }
+                  },
+                  "Property": "priority"
+                }
+              },
+              "queryRef": "Business Recommendations.priority",
+              "nativeQueryRef": "priority"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Business Recommendations"
+                    }
+                  },
+                  "Property": "recommendation"
+                }
+              },
+              "queryRef": "Business Recommendations.recommendation",
+              "nativeQueryRef": "recommendation"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Business Recommendations"
+                    }
+                  },
+                  "Property": "evidence"
+                }
+              },
+              "queryRef": "Business Recommendations.evidence",
+              "nativeQueryRef": "evidence"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Business Recommendations"
+                    }
+                  },
+                  "Property": "action"
+                }
+              },
+              "queryRef": "Business Recommendations.action",
+              "nativeQueryRef": "action"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Number-backed compliance review recommendations'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

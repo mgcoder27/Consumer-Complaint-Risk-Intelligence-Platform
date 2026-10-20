@@ -1,0 +1,116 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json",
+  "name": "10d9e185-2205-5a56-8",
+  "position": {
+    "x": 20,
+    "y": 20,
+    "z": 2000,
+    "height": 145,
+    "width": 1240,
+    "tabOrder": 2000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Model Drivers"
+                    }
+                  },
+                  "Property": "model"
+                }
+              },
+              "queryRef": "Model Drivers.model",
+              "nativeQueryRef": "model"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Model Drivers"
+                    }
+                  },
+                  "Property": "feature"
+                }
+              },
+              "queryRef": "Model Drivers.feature",
+              "nativeQueryRef": "feature"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Model Drivers"
+                    }
+                  },
+                  "Property": "coefficient"
+                }
+              },
+              "queryRef": "Model Drivers.coefficient",
+              "nativeQueryRef": "coefficient"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Model Drivers"
+                    }
+                  },
+                  "Property": "direction"
+                }
+              },
+              "queryRef": "Model Drivers.direction",
+              "nativeQueryRef": "direction"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Model Drivers"
+                    }
+                  },
+                  "Property": "status"
+                }
+              },
+              "queryRef": "Model Drivers.status",
+              "nativeQueryRef": "status"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Model driver status (no fitted model is available)'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

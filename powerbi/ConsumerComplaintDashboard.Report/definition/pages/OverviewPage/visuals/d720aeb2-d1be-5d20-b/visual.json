@@ -1,0 +1,96 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json",
+  "name": "d720aeb2-d1be-5d20-b",
+  "position": {
+    "x": 830,
+    "y": 155,
+    "z": 6000,
+    "height": 480,
+    "width": 430,
+    "tabOrder": 6000
+  },
+  "visual": {
+    "visualType": "clusteredBarChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Product Summary"
+                    }
+                  },
+                  "Property": "product"
+                }
+              },
+              "queryRef": "Product Summary.product",
+              "nativeQueryRef": "product"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Product Summary"
+                    }
+                  },
+                  "Property": "Product Complaints"
+                }
+              },
+              "queryRef": "Product Summary.Product Complaints",
+              "nativeQueryRef": "Product Complaints"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Product Summary"
+                  }
+                },
+                "Property": "Product Complaints"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Complaints by Product'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

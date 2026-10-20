@@ -1,0 +1,81 @@
+table 'State Complaints'
+	lineageTag: 459bff6e-72c6-5de1-836e-f25b89e98bcf
+
+	measure 'State Complaints' = SUM('State Complaints'[complaint_count])
+		formatString: #,##0
+		lineageTag: eb290a62-58ba-5b31-b8ac-b334fff75c3e
+
+	column state
+		dataType: string
+		lineageTag: 5aa5e5d6-f047-5b8c-86b2-3fade997c76b
+		summarizeBy: none
+		sourceColumn: state
+
+		annotation SummarizationSetBy = User
+
+	column complaint_count
+		dataType: int64
+		lineageTag: 354e118f-a86b-5c63-8a49-455556830ba1
+		summarizeBy: sum
+		sourceColumn: complaint_count
+
+	column closed_outcome_count
+		dataType: int64
+		lineageTag: efa413ae-73a5-543d-a017-c60b78f73e16
+		summarizeBy: sum
+		sourceColumn: closed_outcome_count
+
+	column monetary_relief_count
+		dataType: int64
+		lineageTag: 90dd28db-c3fe-595a-8fc4-f507074b0dcb
+		summarizeBy: sum
+		sourceColumn: monetary_relief_count
+
+	column monetary_relief_rate_pct
+		dataType: double
+		lineageTag: 9108c416-ea21-5f59-b5f5-be51916c28e9
+		summarizeBy: none
+		sourceColumn: monetary_relief_rate_pct
+		formatString: 0.00
+
+	column population
+		dataType: int64
+		lineageTag: bf8ac85a-d374-54de-9594-75d3f1b9fd2e
+		summarizeBy: sum
+		sourceColumn: population
+
+	column complaints_per_100k
+		dataType: double
+		lineageTag: 8d768758-7a02-5e16-bb16-3d6651199c17
+		summarizeBy: none
+		sourceColumn: complaints_per_100k
+		formatString: 0.00
+
+	column complaint_rate_rank
+		dataType: double
+		lineageTag: cbb77646-569f-52cb-914b-2e21fc680dd5
+		summarizeBy: sum
+		sourceColumn: complaint_rate_rank
+
+	column relief_rate_rank_min_100_outcomes
+		dataType: double
+		lineageTag: d05a66ab-e423-51be-83a8-f2fe0db11845
+		summarizeBy: sum
+		sourceColumn: relief_rate_rank_min_100_outcomes
+
+	partition 'State Complaints-25892947-c55e-5873-a4c8-b5a5cadb2248' = m
+		mode: import
+		source =
+			let
+				Source = Csv.Document(
+					File.Contents(DataFolder & "\state_complaints_per_capita.csv"),
+					[Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]
+				),
+				PromotedHeaders = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				TypedColumns = Table.TransformColumnTypes(
+					PromotedHeaders, {{"state", type text}, {"complaint_count", Int64.Type}, {"closed_outcome_count", Int64.Type}, {"monetary_relief_count", Int64.Type}, {"monetary_relief_rate_pct", type number}, {"population", Int64.Type}, {"complaints_per_100k", type number}, {"complaint_rate_rank", type number}, {"relief_rate_rank_min_100_outcomes", type number}}
+				)
+			in
+				TypedColumns
+
+	annotation PBI_ResultType = Table

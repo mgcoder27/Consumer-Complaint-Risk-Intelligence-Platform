@@ -1,0 +1,96 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json",
+  "name": "be99ae1d-de61-524a-8",
+  "position": {
+    "x": 20,
+    "y": 350,
+    "z": 3000,
+    "height": 285,
+    "width": 1240,
+    "tabOrder": 3000
+  },
+  "visual": {
+    "visualType": "clusteredBarChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Issue Summary"
+                    }
+                  },
+                  "Property": "issue"
+                }
+              },
+              "queryRef": "Issue Summary.issue",
+              "nativeQueryRef": "issue"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Issue Summary"
+                    }
+                  },
+                  "Property": "Issue Complaints"
+                }
+              },
+              "queryRef": "Issue Summary.Issue Complaints",
+              "nativeQueryRef": "Issue Complaints"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "Issue Summary"
+                  }
+                },
+                "Property": "Issue Complaints"
+              }
+            },
+            "direction": "Descending"
+          }
+        ],
+        "isDefaultSort": true
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Most Frequent Issues'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

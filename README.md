@@ -1,5 +1,75 @@
 # Consumer Complaint Risk Intelligence Platform
 
+## Business problem and project status
+
+Compliance teams need to triage large volumes of consumer complaints, identify
+products and companies that merit investigation, and monitor complaint outcomes
+without confusing a complaint count with confirmed misconduct or a predicted
+bank loss. This portfolio project uses CFPB complaint records to build a
+reproducible data pipeline, transparent heuristic risk categories, and
+Power BI-ready summaries.
+
+The included data is a user-supplied snapshot of the public
+[CFPB Consumer Complaint Database](https://www.consumerfinance.gov/data-research/consumer-complaints/),
+stored as `data/raw/complaints.csv.gz` with Git LFS. It contains **18,531,443
+rows** and **15 columns**, but no `Consumer complaint narrative` field. The
+missing narrative prevents an honest evaluation of the narrative-based regex,
+traditional NLP, and transformer models on this snapshot. Stages 3, 4, and 6
+are implemented as workflows, but were not trained on the supplied data; no
+model scores or drivers are claimed.
+
+### Architecture
+
+```text
+CFPB CSV / gzip CSV
+        |
+        +--> chunked validation and MySQL star-schema loader (Stage 1)
+        +--> regex narrative features (Stage 2; requires narratives)
+        +--> TF-IDF baselines (Stage 3; requires narratives)
+        +--> DistilBERT Colab workflow (Stage 4; requires narratives)
+        +--> heuristic ontology and optional Census join (Stage 5)
+        +--> monetary-relief model workflow (Stage 6; not trained here)
+        +--> chunked aggregated CSV exports --> Power BI (Stage 7)
+        |
+        +--> README and detailed project report (Stage 8)
+```
+
+`src/` contains reusable implementations, `sql/` contains the MySQL schema
+and reports, `notebooks/` contains exploratory and modeling workflows,
+`tests/` contains focused unit tests, and `data/processed/powerbi/` contains
+the generated dashboard aggregates. Raw and intermediate complaint records
+are not intended for Power BI export; the dashboard exporter omits complaint
+IDs, ZIP codes, and narratives.
+
+### Results: what has and has not been measured
+
+| Model/workflow | Task and comparison | Result on supplied snapshot |
+|---|---|---|
+| TF-IDF Logistic Regression | Stage 3; CFPB Issue classification from narratives | **Not evaluated.** Narrative column absent; macro-F1, per-class scores, and ROC-AUC unavailable. |
+| TF-IDF Linear SVM | Stage 3; same task and split as Logistic Regression | **Not evaluated.** Narrative column absent; no baseline scores available. |
+| DistilBERT (`distilbert-base-uncased`) | Stage 4; same Issue task and sampled train/test split as the traditional models | **Not trained/evaluated.** Narrative column absent; no macro-F1 comparison or error examples available. |
+| Structured-only Logistic Regression | Stage 6; historical explicit monetary-relief outcome | **Not trained/evaluated.** ROC-AUC, monetary-relief precision/recall, and model drivers unavailable in this environment. |
+| Text + structured Logistic Regression | Stage 6; tests whether narratives add value over structure | **Unavailable for this snapshot.** No narrative field; a text-lift comparison cannot be made. |
+
+These are unavailable results, not zero scores. The data profile is not model
+performance. The Stage 7 Power BI exports are computed from the full supplied
+snapshot and are summarized in the detailed report.
+
+### Standards, conventions, and project-specific choices
+
+| Area | Common method or convention used | Project-specific choice (not a universal standard) |
+|---|---|---|
+| Modeling evaluation | Hold out test data before fitting; fit preprocessing inside pipelines; use stratified splitting and training-only cross-validation | Seed 42, 80/20 holdout, three-fold CV, class weights, Stage 6 probability threshold 0.5 |
+| Metrics | Macro-F1 and class-level metrics for imbalanced multiclass classification; ROC-AUC plus positive-class precision/recall for relief ranking | Selected metric set follows this portfolio’s requirements; it is not a CFPB or regulatory benchmark |
+| Risk category | Make classification rules explicit and inspectable | The five-category phrase ontology, precedence, and category labels are custom heuristics |
+| Relief target | Define labels from observed outcomes and exclude ambiguous/unresolved records | Only the exact `Closed with monetary relief` response is positive; specified closed responses are negative |
+| Sampling | Use deterministic, bounded sampling for large files and preserve class proportions where intended | Stage 4's balanced cap of about 20,000 and Stage 6's 200,000-row proportional cap |
+| State comparison | Normalize by population for a per-capita descriptive rate | Per 100,000 residents; this is not a customer-exposure rate, and the Census input has not been provided |
+| Company/state rate rankings | Show denominators and avoid unstable tiny-sample rankings | Hide rate ranks below 100 classifiable closed outcomes; the 100-record cutoff is a project threshold |
+
+For methodology, results from the supplied dataset, cautions, and
+recommendations, see the [detailed project report](reports/project_report.md).
+
 ## Stage 1: MySQL data engineering
 
 This stage loads a public CFPB Consumer Complaint Database CSV into a MySQL
@@ -11,7 +81,7 @@ existing complaint IDs.
 ### Project folders
 
 - `data/raw/` — contains the supplied CFPB snapshot as a gzip-compressed CSV.
-- `data/processed/` — reserved for later processing stages.
+- `data/processed/` — generated local results, including Power BI aggregate CSVs.
 - `sql/` — MySQL table definitions and reporting queries.
 - `notebooks/` — reserved for the later analysis and modeling stages.
 - `src/` — reusable Python scripts, including the MySQL loader.
@@ -389,3 +459,12 @@ triage suggestions, not estimates of a bank's customer-level risk or monetary
 cost. Per-capita rates are more comparable across state population sizes than
 raw counts, but they are not customer-normalized rates and should be read
 alongside complaint counts and reporting limitations.
+
+## Stage 8: Documentation
+
+This README is the quick-start and stage-by-stage reference. The detailed
+report in `reports/project_report.md` records the supplied data profile,
+measured descriptive findings, model evaluation status, design choices versus
+common methods, business recommendations, and limitations. It explicitly
+separates computed dashboard statistics from model metrics that were not
+obtained.

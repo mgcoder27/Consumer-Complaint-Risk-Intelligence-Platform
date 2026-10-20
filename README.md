@@ -250,3 +250,41 @@ bank's customer count. State rates also do not adjust for product mix, access
 to complaint channels, reporting behavior, or complaint severity. Use a Census
 population estimate whose year is appropriate for the complaint period; the
 feature does not automatically adjust for a mismatch in time periods.
+
+## Stage 6: Monetary-relief risk model
+
+`src/risk_model.py` compares two class-balanced Logistic Regression models:
+
+- **Structured only:** regex-derived numeric/boolean narrative features,
+  Product, State, and the custom ontology category.
+- **Text + structured:** the same features plus unigram/bigram TF-IDF from the
+  cleaned complaint narrative.
+
+Run it from the project root with `data/raw/complaints.csv` present:
+
+```powershell
+python src/risk_model.py
+```
+
+The default 20% stratified holdout uses seed 42. Hyperparameters are selected
+by three-fold stratified ROC-AUC cross-validation using training rows only.
+Imputation, scaling, one-hot categories, and TF-IDF are fitted inside the
+cross-validation pipeline. The report contains held-out ROC-AUC,
+monetary-relief precision and recall (at a 0.5 probability threshold), class
+counts, selected parameters, and a confusion matrix. Results and predictions
+are written under `data/processed/risk_model/`, which is Git-ignored.
+
+The target is defined only for observed closed outcomes: responses containing
+`monetary relief` are positive, other responses beginning with `Closed` are
+negative, and missing, in-progress, or unrecognized responses are excluded.
+The target source, `Company response to consumer`, is never included as a
+predictor. `Timely response?` and `Consumer disputed?` are also explicitly
+excluded because they are response/dispute workflow fields that may be known
+only after intake. The notebook `notebooks/06_risk_model.ipynb` explains this
+leakage control and the results.
+
+This is a historical closed-complaint outcome model, not a validated
+prospective prediction at complaint intake. If it is used to forecast future
+relief, define the prediction timestamp and verify that every predictor was
+available by that time. CFPB company response is an outcome proxy and may not
+represent the bank's actual monetary cost.
